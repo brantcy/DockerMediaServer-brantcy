@@ -1,0 +1,204 @@
+version: "3.9"
+networks:
+    docker_internal_network:
+      name: ${DOCKER_NETWORK_NAME}
+services:
+    plex: ######### [http://localhost:32400/web/] PLEX - Media server
+        container_name: plex
+        image: ghcr.io/linuxserver/plex        
+        networks:
+          - docker_internal_network
+        ports:
+          - '32400:32400'
+          - '3005:3005'
+          - '8324:8324'
+          - '32469:32469'
+          - '1900:1900/udp'
+          - '32410:32410/udp'
+          - '32412:32412/udp'
+          - '32413:32413/udp'
+          - '32414:32414/udp'
+        environment:
+          - PLEX_CLAIM=${PLEX_CLAIM}
+          - ADVERTISE_IP=${PLEX_ADVERTISE_IP}
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${PLEX_TRANSCODE_PATH}:/transcode'
+          - '${DOCKER_APPDATA_PATH}/plex:/config'
+          - '${DATA_PATH}:/data'
+        restart: unless-stopped
+    jellyfin: ##### [http://localhost:8096]  Jellyfin - Media server 
+        container_name: jellyfin
+        image: ghcr.io/linuxserver/jellyfin
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        ports:
+          - '8096:8096'
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/jellyfin:/config'
+          - '${DATA_PATH}:/data'
+        restart: unless-stopped
+    ombi: ######### [http://localhost:3579]  OMBI - User media requests
+        container_name: ombi
+        image: ghcr.io/linuxserver/ombi
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/ombi:/config'
+        ports:
+          - '3579:3579'
+        restart: unless-stopped
+    radarr: ####### [http://localhost:7878]  Radarr - Movie management
+        container_name: radarr
+        image: linuxserver/radarr
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        ports:
+          - '7878:7878'
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/radarr:/config'
+          - '${DATA_PATH}:/data'
+        restart: unless-stopped
+    sonarr: ####### [http://localhost:8989]  Sonarr - TV management
+        container_name: sonarr
+        image: linuxserver/sonarr
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        ports:
+          - '8989:8989'
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/sonarr:/config'
+          - '${DATA_PATH}:/data'
+        restart: unless-stopped
+    lidarr: ####### [http://localhost:8686]  Lidarr - Music management
+        container_name: lidarr
+        image: ghcr.io/linuxserver/lidarr
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/lidarr:/config'
+          - '${DATA_PATH}:/data'
+        ports:
+          - '8686:8686'
+        restart: unless-stopped
+    bazarr: ####### [http://localhost:6767]  Bazarr - Subtitle managment
+        container_name: bazarr
+        image: ghcr.io/linuxserver/bazarr
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/bazarr:/config'
+          - '${DATA_PATH}:/data'
+        ports:
+          - '6767:6767'
+        restart: unless-stopped
+    tautulli: ##### [http://localhost:8181]  Tautulli - Stats
+        container_name: tautulli
+        image: linuxserver/tautulli
+        networks:
+         - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/tautulli:/config'
+          - '${DOCKER_APPDATA_PATH}/plex/Library/\
+             Application Support/Plex Media Server/Logs:/plexlogs'
+          - '${DOCKER_APPDATA_PATH}/jellyfin/log:/jellyfinlogs'
+        ports:
+          - '8181:8181'
+        restart: unless-stopped
+    nzbget: ####### [http://localhost:6789]  NZBGet - Usenet downloader
+        container_name: nzbget
+        image: lscr.io/linuxserver/nzbget:latest
+        networks:
+          - docker_internal_network        
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/nzbget:/config'
+          - '${DATA_PATH}:/data'
+        ports:
+          - '6789:6789'
+        restart: unless-stopped
+    hydra: ######## [http://localhost:5076]  NZBHydra2 - Meta search torznab
+        container_name: nzbhydra2
+        image: lscr.io/linuxserver/nzbhydra2:latest        
+        networks:
+          - docker_internal_network
+        restart: unless-stopped
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/hydra:/config'
+          - '${DATA_PATH}:/data'
+        ports:
+          - '5076:5076'
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+    dozzle: ####### [http://localhost:9999]  Dozzle - Docker log reader
+        image: amir20/dozzle:latest  
+        container_name: dozzle
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        ports:
+          - '9999:8080'
+        restart: unless-stopped
+    overseerr: #### [http://localhost:5055]  Overseer - Movie and TV requests
+        container_name: overseerr
+        image: ghcr.io/linuxserver/overseerr
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/overseerr:/config'
+          - '${DATA_PATH}:/data'
+        ports:
+          - '5055:5055'
+        restart: unless-stopped
+    heimdall: ##### [http://localhost:80]    Heindall - Dashboard
+        container_name: heimdall
+        image: ghcr.io/linuxserver/heimdall
+        networks:
+          - docker_internal_network
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=America/Phoenix
+        volumes:
+          - '${DOCKER_APPDATA_PATH}/heimdall:/config'
+        ports:
+          - '8090:80'
+        restart: unless-stopped
